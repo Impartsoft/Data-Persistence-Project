@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -9,12 +10,15 @@ public class MainManager : MonoBehaviour
     public Brick BrickPrefab;
     public int LineCount = 6;
     public Rigidbody Ball;
-
     public Text ScoreText;
+    public Text BestScoreText;
     public GameObject GameOverText;
     
+    [SerializeField] public string PlayerName;
     private bool m_Started = false;
     private int m_Points;
+    private int m_bestScore;
+    private string m_name = "Name";
     
     private bool m_GameOver = false;
 
@@ -22,6 +26,9 @@ public class MainManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        LoadScore();
+        SetBestScoreText();
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -36,6 +43,11 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+    }
+
+    private void SetBestScoreText()
+    {
+        BestScoreText.text = $"Best Score : {m_name} : {m_bestScore}";
     }
 
     private void Update()
@@ -71,6 +83,37 @@ public class MainManager : MonoBehaviour
     public void GameOver()
     {
         m_GameOver = true;
+        SaveScore(PlayerName, m_Points);
         GameOverText.SetActive(true);
+    }
+
+    class BestScore
+    {
+        public int Score { get; set; }
+        public string Name { get; set; }
+    }
+
+    private void SaveScore(string playerName, int m_Points)
+    {
+        if (m_Points > m_bestScore)
+        {
+           var saveBestScore = new BestScore
+            {
+                Score = m_Points,
+                Name = playerName
+            };
+
+            File.WriteAllText(Application.persistentDataPath, JsonUtility.ToJson(saveBestScore));
+        }
+    }
+
+    private void LoadScore()
+    {
+        var best = JsonUtility.FromJson<BestScore>(Application.persistentDataPath);
+        if (best == null)
+            return;
+
+        m_bestScore = best.Score;
+        m_name = best.Name;
     }
 }
